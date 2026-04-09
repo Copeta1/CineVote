@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useFirestore } from "@/hooks/useFirestore";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -6,12 +7,19 @@ import { ActivityIndicator, View } from "react-native";
 export default function Index() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const { getUser } = useFirestore();
 
   useEffect(() => {
     if (loading) return;
 
     if (user) {
-      router.replace("/(tabs)/home");
+      getUser(user.uid).then((userData) => {
+        if (userData?.onboarded) {
+          router.replace("/(tabs)/home");
+        } else {
+          router.replace("/(auth)/onboarding");
+        }
+      });
     } else {
       router.replace("/(auth)/welcome");
     }
