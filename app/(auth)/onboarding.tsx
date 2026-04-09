@@ -164,7 +164,7 @@ export default function Onboarding() {
         onboarded: true,
         createdAt: new Date(),
       });
-      router.replace("/(tabs)/home");
+      router.replace("/(auth)/platforms");
     } catch (error) {
       console.error(error);
     } finally {
