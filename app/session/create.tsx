@@ -124,7 +124,11 @@ export default function Create() {
           <Text className="text-orange-500 text-xl">Back</Text>
         </TouchableOpacity>
 
-        {code ? (
+        {!code ? (
+          <View className="flex-1 items-center justify-center pt-32">
+            <ActivityIndicator size="large" color="#f97316" />
+          </View>
+        ) : (
           <>
             {/* Entry Code */}
             <Text className="text-zinc-400 text-sm uppercase tracking-widest text-center mb-2">
@@ -253,38 +257,12 @@ export default function Create() {
               </View>
             </View>
           </>
-        ) : (
-          <View className="flex-1 bg-zinc-950 items-center justify-center pt-32">
-            <View className="absolute bottom-8 left-6 right-6">
-              {code && (
-                <TouchableOpacity
-                  className={`w-full py-4 rounded-2xl items-center ${
-                    members.length >= 2 ? "bg-orange-500" : "bg-zinc-700"
-                  }`}
-                  disabled={members.length < 2}
-                  onPress={() =>
-                    router.push(`/session/swipe?sessionId=${sessionId}`)
-                  }
-                >
-                  <Text className="text-white font-bold text-lg">
-                    {members.length >= 2
-                      ? "Start Swiping ⚡"
-                      : `Waiting for friends... (${members.length}/2)`}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
         )}
       </View>
 
       {/* Start Swiping button */}
-      <View className="absolute bottom-8 left-6 right-6">
-        {!code ? (
-          <View className="w-full py-4 rounded-2xl items-center">
-            <ActivityIndicator size="large" color="#f97316" />
-          </View>
-        ) : (
+      {code && (
+        <View className="absolute bottom-8 left-6 right-6">
           <TouchableOpacity
             className={`w-full py-4 rounded-2xl items-center ${
               members.length >= 2 ? "bg-orange-500" : "bg-zinc-700"
@@ -298,8 +276,8 @@ export default function Create() {
                 : `Waiting for friends... (${members.length}/2)`}
             </Text>
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      )}
     </ScrollView>
   );
 }
