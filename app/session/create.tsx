@@ -34,7 +34,8 @@ const PLATFORMS = [
 export default function Create() {
   const router = useRouter();
   const { user } = useAuth();
-  const { createSession, listenToSession } = useSession();
+  const { createSession, updateFilters, listenToSession, refreshCode } =
+    useSession();
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
@@ -46,6 +47,32 @@ export default function Create() {
   const [platform, setPlatform] = useState("Any");
 
   useEffect(() => {
+    if (!user) return;
+    if (sessionId) return;
+
+    const init = async () => {
+      try {
+        setLoading(true);
+        const result = await createSession({
+          genres: [],
+          duration: "Any",
+          platform: "Any",
+        });
+        if (result) {
+          setSessionId(result.sessionId);
+          setCode(result.code);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
+  }, [user?.uid]);
+
+  useEffect(() => {
     if (!sessionId) return;
     const unsub = listenToSession(sessionId, (data) => {
       setMembers(data.members);
@@ -53,24 +80,25 @@ export default function Create() {
     return unsub;
   }, [sessionId]);
 
-  const handleCreate = async () => {
-    try {
-      setLoading(true);
-      const result = await createSession({
-        genres: selectedGenres,
-        duration,
-        platform,
-      });
-      if (result) {
-        setSessionId(result.sessionId);
-        setCode(result.code);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const interval = setInterval(async () => {
+      const newCode = await refreshCode(sessionId);
+      setCode(newCode);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    updateFilters(sessionId, {
+      genres: selectedGenres,
+      duration,
+      platform,
+    });
+  }, [selectedGenres, duration, platform, sessionId]);
 
   const toggleGenre = (genre: string) => {
     if (selectedGenres.includes(genre)) {
@@ -226,14 +254,26 @@ export default function Create() {
             </View>
           </>
         ) : (
-          <View className="flex-1 items-center justify-center pt-32">
-            <Ionicons name="film" size={64} color="#f97316" />
-            <Text className="text-white text-3xl font-black mt-4 mb-2">
-              Create Session
-            </Text>
-            <Text className="text-zinc-400 text-center mb-8">
-              Start a film night and invite your friends
-            </Text>
+          <View className="flex-1 bg-zinc-950 items-center justify-center pt-32">
+            <View className="absolute bottom-8 left-6 right-6">
+              {code && (
+                <TouchableOpacity
+                  className={`w-full py-4 rounded-2xl items-center ${
+                    members.length >= 2 ? "bg-orange-500" : "bg-zinc-700"
+                  }`}
+                  disabled={members.length < 2}
+                  onPress={() =>
+                    router.push(`/session/swipe?sessionId=${sessionId}`)
+                  }
+                >
+                  <Text className="text-white font-bold text-lg">
+                    {members.length >= 2
+                      ? "Start Swiping ⚡"
+                      : `Waiting for friends... (${members.length}/2)`}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         )}
       </View>
@@ -241,19 +281,9 @@ export default function Create() {
       {/* Start Swiping button */}
       <View className="absolute bottom-8 left-6 right-6">
         {!code ? (
-          <TouchableOpacity
-            className="bg-orange-500 w-full py-4 rounded-2xl items-center"
-            onPress={handleCreate}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text className="text-white font-bold text-lg">
-                Create Session ⚡
-              </Text>
-            )}
-          </TouchableOpacity>
+          <View className="w-full py-4 rounded-2xl items-center">
+            <ActivityIndicator size="large" color="#f97316" />
+          </View>
         ) : (
           <TouchableOpacity
             className={`w-full py-4 rounded-2xl items-center ${
