@@ -1,9 +1,11 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useSession } from "@/hooks/useSession";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   ScrollView,
   Text,
   TextInput,
@@ -15,6 +17,21 @@ export default function Home() {
   const { user } = useAuth();
   const router = useRouter();
   const [code, setCode] = useState("");
+  const { joinSession } = useSession();
+
+  const handleJoin = async () => {
+    if (code.length !== 6) {
+      Alert.alert("Error", "Please enter a valid 6-digit code");
+      return;
+    }
+
+    const result = await joinSession(code);
+    if (result) {
+      router.push(`/session/waiting?sessionId=${result.sessionId}`);
+    } else {
+      Alert.alert("Error", "Session not found. Check your code and try again.");
+    }
+  };
 
   return (
     <ScrollView className="flex-1 bg-zinc-950">
@@ -37,7 +54,8 @@ export default function Home() {
             colors={["#f97316", "#fb923c", "#fdba74"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            className="p-6 h-44"
+            className="p-6"
+            style={{ minHeight: 176 }}
           >
             <View className="flex-row items-center gap-2 mb-2">
               <Ionicons name="people" size={18} color="white" />
@@ -45,10 +63,10 @@ export default function Home() {
                 Film Night
               </Text>
             </View>
-            <Text className="text-white text-3xl font-black italic">
+            <Text className="text-white text-3xl font-black italic pr-4">
               Start Film Night
             </Text>
-            <Text className="text-orange-100 mt-1">
+            <Text className="text-orange-100 mt-1 pr-4">
               Create a film night, add your friends
             </Text>
 
@@ -69,7 +87,9 @@ export default function Home() {
             placeholder="Enter code..."
             placeholderTextColor="#71717a"
             value={code}
-            onChangeText={(text) => setCode(text.slice(0, 6))}
+            onChangeText={(text) =>
+              setCode(text.replace(/[^0-9]/g, "").slice(0, 6))
+            }
             keyboardType="number-pad"
             maxLength={6}
           />
@@ -78,7 +98,7 @@ export default function Home() {
           </TouchableOpacity>
           <TouchableOpacity
             className="bg-orange-500 rounded-xl p-3"
-            onPress={() => router.push("/session/join")}
+            onPress={handleJoin}
           >
             <Ionicons name="arrow-forward" size={22} color="white" />
           </TouchableOpacity>

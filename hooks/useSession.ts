@@ -2,10 +2,14 @@ import { db } from "@/config/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import {
   addDoc,
+  arrayUnion,
   collection,
   doc,
+  getDocs,
   onSnapshot,
+  query,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { useCallback } from "react";
 
@@ -17,7 +21,11 @@ export function useSession() {
   };
 
   const createSession = useCallback(
-    async (filters: { genres: string[]; duration: string; platform: string }) => {
+    async (filters: {
+      genres: string[];
+      duration: string;
+      platform: string;
+    }) => {
       if (!user) return null;
 
       const code = generateCode();
@@ -53,7 +61,31 @@ export function useSession() {
   };
 
   const joinSession = async (code: string) => {
-    // Implementiramo kasnije
+    if (!user) return null;
+
+    const q = query(
+      collection(db, "sessions"),
+      where("code", "==", code),
+      where("status", "==", "waiting"),
+    );
+
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) return null;
+
+    const sessionDoc = snapshot.docs[0];
+    const sessionId = sessionDoc.id;
+
+    await updateDoc(doc(db, "sessions", sessionId), {
+      members: arrayUnion({
+        uid: user.uid,
+        name: user.displayName ?? "Guest",
+        ready: true,
+        isHost: false,
+      }),
+    });
+
+    return { sessionId };
   };
 
   const updateFilters = async (
@@ -75,5 +107,18 @@ export function useSession() {
     return unsub;
   };
 
-  return { createSession, updateFilters, refreshCode, joinSession, listenToSession };
+  const startSwiping = async (sessionId: string) => {
+    await updateDoc(doc(db, "sessions", sessionId), {
+      status: "swiping",
+    });
+  };
+
+  return {
+    createSession,
+    updateFilters,
+    refreshCode,
+    joinSession,
+    listenToSession,
+    startSwiping,
+  };
 }

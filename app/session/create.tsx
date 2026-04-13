@@ -34,8 +34,13 @@ const PLATFORMS = [
 export default function Create() {
   const router = useRouter();
   const { user } = useAuth();
-  const { createSession, updateFilters, listenToSession, refreshCode } =
-    useSession();
+  const {
+    createSession,
+    updateFilters,
+    listenToSession,
+    refreshCode,
+    startSwiping,
+  } = useSession();
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
@@ -268,11 +273,16 @@ export default function Create() {
               members.length >= 2 ? "bg-orange-500" : "bg-zinc-700"
             }`}
             disabled={members.length < 2}
-            onPress={() => router.push(`/session/swipe?sessionId=${sessionId}`)}
+            onPress={async () => {
+              if (sessionId) {
+                await startSwiping(sessionId);
+                router.push(`/session/swipe?sessionId=${sessionId}`);
+              }
+            }}
           >
             <Text className="text-white font-bold text-lg">
               {members.length >= 2
-                ? "Start Swiping ⚡"
+                ? "Start Swiping"
                 : `Waiting for friends... (${members.length}/2)`}
             </Text>
           </TouchableOpacity>
